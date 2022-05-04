@@ -9,8 +9,13 @@ import "reflect-metadata";
 import { ApolloServer } from "apollo-server-express";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 
+import i18next from "i18next";
+import Backend from "i18next-http-backend";
+import i18nextMiddleware from "i18next-express-middleware";
+
 import { apiController } from "../controller";
 import { buildSchema } from "type-graphql";
+import { errorHandler } from "../_common/exception/error-handler";
 
 dotenv.config();
 
@@ -35,14 +40,15 @@ const start = async () => {
   });
 
   const schema = await buildSchema({
-    resolvers: [process.cwd() + "/**/*.resolver.{ts,js}"],
+    resolvers: [path.join(process.cwd(), "/**/*.resolver.{ts,js}")],
+    validate: true,
   });
 
   const server = new ApolloServer({
     schema,
     introspection: true,
     plugins: [ApolloServerPluginLandingPageGraphQLPlayground({})],
-    context: ({ req, res, connection }) => {
+    context: ({ req, res }) => {
       return {
         req,
         res,
@@ -54,7 +60,24 @@ const start = async () => {
 
   server.applyMiddleware({ app, path: "/graphql" });
 
+  i18next
+    .use(Backend)
+    .use(i18nextMiddleware.LanguageDetector)
+    .init({
+      backend: {
+        loadPath: path.join(
+          process.cwd(),
+          "/src/_common/locales/{{lng}}/{{ns}}.json"
+        ),
+      },
+      fallbackLng: "en",
+      preload: ["en", "ar"],
+    });
+
+  app.use(i18nextMiddleware.handle(i18next));
+
   app.use("/api", apiController);
+  app.use(errorHandler);
 
   const port = process.env.PORT || 6000;
 
