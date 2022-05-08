@@ -6,8 +6,8 @@ import { uploadController } from "../_common/uploader/controller";
 
 const apiController = Router();
 
-apiController.post("/translate", async (req: Request, res: Response) => {
-  res.send("sdfsdf");
+apiController.post("/translate", async (req: any, res: Response) => {
+  res.send(req.t("required"));
 });
 
 apiController.use("/upload", uploadController);

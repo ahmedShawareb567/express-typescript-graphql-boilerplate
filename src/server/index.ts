@@ -10,7 +10,7 @@ import { ApolloServer } from "apollo-server-express";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 
 import i18next from "i18next";
-import Backend from "i18next-http-backend";
+import Backend from "i18next-node-fs-backend";
 import i18nextMiddleware from "i18next-express-middleware";
 
 import { apiController } from "../controller";
@@ -39,6 +39,22 @@ const start = async () => {
     res.sendFile(path.join(process.cwd() + "/client/index.html"));
   });
 
+  i18next
+    .use(Backend)
+    .use(i18nextMiddleware.LanguageDetector)
+    .init({
+      backend: {
+        loadPath: path.join(
+          process.cwd(),
+          "/src/_common/locales/{{lng}}/{{ns}}.json"
+        ),
+      },
+      fallbackLng: "ar",
+      preload: ["en", "ar"],
+    });
+
+  app.use(i18nextMiddleware.handle(i18next));
+
   const schema = await buildSchema({
     resolvers: [path.join(process.cwd(), "/**/*.resolver.{ts,js}")],
     validate: true,
@@ -59,22 +75,6 @@ const start = async () => {
   await server.start();
 
   server.applyMiddleware({ app, path: "/graphql" });
-
-  i18next
-    .use(Backend)
-    .use(i18nextMiddleware.LanguageDetector)
-    .init({
-      backend: {
-        loadPath: path.join(
-          process.cwd(),
-          "/src/_common/locales/{{lng}}/{{ns}}.json"
-        ),
-      },
-      fallbackLng: "en",
-      preload: ["en", "ar"],
-    });
-
-  app.use(i18nextMiddleware.handle(i18next));
 
   app.use("/api", apiController);
   app.use(errorHandler);
